@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true">
+
+    <springProperty scope="context" name="LOG_LEVEL" source="LOG_LEVEL" defaultValue="INFO" />
+    <springProperty scope="context" name="LOG_FOLDER" source="LOG_FOLDER" defaultValue="api-cust-360/logs" />
+
+    <!--Console appender-->
+    <appender name="APP_LOG_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+
+        <!--FileLog的Filter-->
+        <filter class="com.ctbc.aigo.module.log.config.CtbcFileLogFilter"/>
+        <encoder>
+            <!--注意Syslog會打印api_txno來判別是哪個request造成的錯誤-->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.ss} [%level] [%X{LOG_TYPE}] %logger{0}[%line] ‑ %msg%n</pattern>
+        </encoder>
+
+    </appender>
+
+    <!--json file log appender-->
+    <appender name="APP_LOG_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FOLDER}/api-chat.log</file>
+        <!--注入kafka logstash json encoder來轉換index json格式-->
+        <encoder charset="UTF-8" class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers class="net.logstash.logback.composite.loggingevent.LoggingEventJsonProviders">
+                <timestamp>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <pattern>
+                    <pattern>
+                        {
+                        "log_type": "%X{LOG_TYPE}",
+                        "node_name": "${NODE_NAME}",
+                        "namespace_name": "${NAMESPACE_NAME}",
+                        "container_name": "${CONTAINER_NAME}",
+                        "pod_name": "${HOSTNAME}",
+                        "level": "%level",
+                        "task":"%thread",
+                        "pid": "#asLong{${PID:-}}",
+                        "ip": "%X{IP}",
+                        "source_id" : "%X{SOURCE_ID}",
+                        "transaction_id" : "%X{TRANSACTION_ID}",
+                        "tracking_id" : "%X{TRACKING_ID}",
+                        "status_code" : "%X{STATUS_CODE}",
+                        "url" : "%X{URL}",
+                        "payload_size" : "%X{PAYLOAD_SIZE}",
+                        "response_time" : "%X{RESPONSE_TIME}"
+                        }
+                    </pattern>
+                </pattern>
+                <nestedField>
+                    <fieldName>data</fieldName>
+                    <providers>
+                        <pattern>
+                            <pattern>
+                                {
+                                "class":"%logger{40}",
+                                "method":"%X{METHOD}",
+                                "content": "%message",
+                                "stack_trace": "%exception{10}"
+                                }
+                            </pattern>
+                        </pattern>
+                    </providers>
+                </nestedField>
+            </providers>
+        </encoder>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- 壓縮後的檔名與路徑 -->
+            <fileNamePattern>${LOG_FOLDER}/api-chat.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <!-- 日誌檔的保留數，取 fileNamePattern 中 %d{xxx} 的最後單位 -->
+            <maxHistory>30</maxHistory>
+            <!-- 日誌檔的容量上限，超過則會被壓縮 -->
+            <maxFileSize>50MB</maxFileSize>
+            <!-- 所有壓縮檔的容量上限，超過則會將最舊的刪除 -->
+            <totalSizeCap>2GB</totalSizeCap>
+            <!-- 啟用清除機制 -->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+
+    </appender>
+
+    <!-- 打印等級用INFO -->
+    <root level="${LOG_LEVEL}">
+        <appender-ref ref="APP_LOG_CONSOLE"/>
+        <appender-ref ref="APP_LOG_FILE"/>
+    </root>
+
+    <logger name="org.springframework.security" level="INFO">
+        <appender-ref ref="APP_LOG_CONSOLE"/>
+        <appender-ref ref="APP_LOG_FILE"/>
+    </logger>
+
+</configuration>
