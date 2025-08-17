@@ -47,6 +47,13 @@ public class AdoptionServiceImpl implements AdoptionService {
             custEntities = dmFaCustRepository.findByAoEmpNo(request.getFaId());
         }
 
+
+        if (custEntities.isEmpty()){
+            return ResponseDTO.builder()
+                    .setResponse(ResponseMessage.USER_NOT_FOUND)
+                    .build();
+        }
+
         List<AdoptionListResponseDataDTO.adoption> adoptionList = custEntities.stream()
                 .map(entity -> AdoptionListResponseDataDTO.adoption.builder()
                         .setCustId(entity.getCustomerId())

@@ -5,6 +5,7 @@ import com.ctbc.aigo.bean.dto.CustProfileMemberBenefitsGetResponseDataDTO;
 import com.ctbc.aigo.bean.dto.RequestDTO;
 import com.ctbc.aigo.bean.dto.ResponseDTO;
 import com.ctbc.aigo.component.CommonApiUtil;
+import com.ctbc.aigo.service.AdoptionService;
 import com.ctbc.aigo.service.MemberBenefitsService;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
@@ -14,23 +15,43 @@ import static com.ctbc.aigo.module.aesencryptor.AesEncryptor.getSsoUrl;
 @Service
 public class MemberBenefitsServiceImpl implements MemberBenefitsService {
 
+    final AdoptionService adoptionService;
+
     final CommonApiUtil commonApiUtil;
 
-    public MemberBenefitsServiceImpl(CommonApiUtil commonApiUtil) {
+    public MemberBenefitsServiceImpl(AdoptionService adoptionService, CommonApiUtil commonApiUtil) {
+        this.adoptionService = adoptionService;
         this.commonApiUtil = commonApiUtil;
     }
 
+    /**
+     * 權益優惠API
+     *
+     * @param request
+     * @return
+     * @throws Exception
+     */
     @Override
     public ResponseDTO custProfileMemberBenefitsGetService(RequestDTO request) throws Exception {
+
+        ResponseDTO adoptionListResponse = adoptionService.adoptionList(request);
+
+
+        //
+        if (!adoptionListResponse.getStatusCode().equals("0000")) {
+            return adoptionListResponse;
+        }
 
         //客戶權益優惠的資訊查詢服務
         JsonNode jsonNodeUserProfile = commonApiUtil.daasV1FcastUserProfileAPI(request);
 
+        //RW100a 歸戶查詢信用卡權益次數 QueryRewardById
+        JsonNode jsonQueryRewardCountById = commonApiUtil.inqueryQueryRewardCountByIdAPI(request);
+
         //WM001  財管權益次數查詢
         JsonNode jsonQueryRewardQry = commonApiUtil.caip3WmRewardQryAPI(request);
 
-        //RW100a 歸戶查詢信用卡權益次數 QueryRewardById
-        JsonNode jsonQueryRewardCountById = commonApiUtil.inqueryQueryRewardCountByIdAPI(request);
+
 
         //信用卡年累積消費
         int last12MonthProcessTotal = 0;

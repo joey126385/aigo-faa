@@ -31,8 +31,10 @@ public class KgptController {
     }
 
     /**
-     * 1、個人化API-權益優惠
-     * /api/v1/k-gpt/cust-profile/member-benefits/get
+     * 權益優惠API
+     * @param request
+     * @return
+     * @throws Exception
      */
     @PostMapping("/cust-profile/member-benefits/get")
     public ResponseDTO custProfileMemberBenefitsGet(@Valid @RequestBody RequestDTO request) throws Exception {
